@@ -10,6 +10,9 @@ import torch
 from torch import multiprocessing as mp
 from torch import nn
 
+import tensorflow as tf
+
+
 from .file_writer import FileWriter
 from .models import Model
 from .utils import get_batch, log, create_env, create_buffers, create_optimizers, act
@@ -28,16 +31,20 @@ def learn(position,
           flags,
           lock):
     """Performs a learning (optimization) step."""
-    if flags.training_device != "cpu":
-        device = torch.device('cuda:'+str(flags.training_device))
-    else:
-        device = torch.device('cpu')
-    obs_x_no_action = batch['obs_x_no_action'].to(device)
-    obs_action = batch['obs_action'].to(device)
-    obs_x = torch.cat((obs_x_no_action, obs_action), dim=2).float()
-    obs_x = torch.flatten(obs_x, 0, 1)
-    obs_z = torch.flatten(batch['obs_z'].to(device), 0, 1).float()
-    target = torch.flatten(batch['target'].to(device), 0, 1)
+    # if flags.training_device != "cpu":
+    #     device = torch.device('cuda:'+str(flags.training_device))
+    # else:
+    #     device = torch.device('cpu')
+    # obs_x_no_action = batch['obs_x_no_action'].to(device)
+    
+    obs_x_no_action = batch['obs_x_no_action']
+    obs_action = batch['obs_action']
+    # obs_x = torch.cat((obs_x_no_action, obs_action), dim=2).float()
+    obs_x = tf.concat((obs_x_no_action, obs_action), aixs=2).float()
+    
+    # obs_x = torch.flatten(obs_x, 0, 1)
+    # obs_z = torch.flatten(batch['obs_z'].to(device), 0, 1).float()
+    # target = torch.flatten(batch['target'].to(device), 0, 1)
     episode_returns = batch['episode_return'][batch['done']]
     mean_episode_return_buf[position].append(torch.mean(episode_returns).to(device))
         

@@ -5,77 +5,78 @@ models into one class for convenience.
 
 import numpy as np
 
-import torch
-from torch import nn
+import tensorflow as tf
+from tf.keras.layers import Dense, LSTM
 
-class LandlordLstmModel(nn.Module):
+
+class LandlordLstmModel(tf.keras.Model):
     def __init__(self):
         super().__init__()
-        self.lstm = nn.LSTM(162, 128, batch_first=True)
-        self.dense1 = nn.Linear(373 + 128, 512)
-        self.dense2 = nn.Linear(512, 512)
-        self.dense3 = nn.Linear(512, 512)
-        self.dense4 = nn.Linear(512, 512)
-        self.dense5 = nn.Linear(512, 512)
-        self.dense6 = nn.Linear(512, 1)
+        self.lstm = LSTM(162, 128, batch_first=True) # todo
+        self.dense1 = Dense(512)    #373 + 128,
+        self.dense2 = Dense(512)
+        self.dense3 = Dense(512)
+        self.dense4 = Dense(512)
+        self.dense5 = Dense(512)
+        self.dense6 = Dense(1)
 
     def forward(self, z, x, return_value=False, flags=None):
         lstm_out, (h_n, _) = self.lstm(z)
         lstm_out = lstm_out[:,-1,:]
-        x = torch.cat([lstm_out,x], dim=-1)
+        x = tf.concat([lstm_out,x], axis=-1)
         x = self.dense1(x)
-        x = torch.relu(x)
+        x = tf.nn.relu(x)
         x = self.dense2(x)
-        x = torch.relu(x)
+        x = tf.nn.relu(x)
         x = self.dense3(x)
-        x = torch.relu(x)
+        x = tf.nn.relu(x)
         x = self.dense4(x)
-        x = torch.relu(x)
+        x = tf.nn.relu(x)
         x = self.dense5(x)
-        x = torch.relu(x)
+        x = tf.nn.relu(x)
         x = self.dense6(x)
         if return_value:
             return dict(values=x)
         else:
             if flags is not None and flags.exp_epsilon > 0 and np.random.rand() < flags.exp_epsilon:
-                action = torch.randint(x.shape[0], (1,))[0]
+                action = tf.random.uniform(shape = [1,], minval=0, maxval=x.shape[0]), (1,)[0]
             else:
-                action = torch.argmax(x,dim=0)[0]
+                action = tf.math.argmax(x,axis=0)[0]
             return dict(action=action)
 
-class FarmerLstmModel(nn.Module):
+class FarmerLstmModel(tf.keras.Model):
     def __init__(self):
         super().__init__()
-        self.lstm = nn.LSTM(162, 128, batch_first=True)
-        self.dense1 = nn.Linear(484 + 128, 512)
-        self.dense2 = nn.Linear(512, 512)
-        self.dense3 = nn.Linear(512, 512)
-        self.dense4 = nn.Linear(512, 512)
-        self.dense5 = nn.Linear(512, 512)
-        self.dense6 = nn.Linear(512, 1)
+        self.lstm = LSTM(162, 128, batch_first=True) #todo
+        self.dense1 = Dense(512)    #484 + 128, 
+        self.dense2 = Dense(512)
+        self.dense3 = Dense(512)
+        self.dense4 = Dense(512)
+        self.dense5 = Dense(512)
+        self.dense6 = Dense(1)
 
     def forward(self, z, x, return_value=False, flags=None):
         lstm_out, (h_n, _) = self.lstm(z)
         lstm_out = lstm_out[:,-1,:]
-        x = torch.cat([lstm_out,x], dim=-1)
+        x = tf.concat([lstm_out,x], axis=-1)
         x = self.dense1(x)
-        x = torch.relu(x)
+        x = tf.nn.relu(x)
         x = self.dense2(x)
-        x = torch.relu(x)
+        x = tf.nn.relu(x)
         x = self.dense3(x)
-        x = torch.relu(x)
+        x = tf.nn.relu(x)
         x = self.dense4(x)
-        x = torch.relu(x)
+        x = tf.nn.relu(x)
         x = self.dense5(x)
-        x = torch.relu(x)
+        x = tf.nn.relu(x)
         x = self.dense6(x)
         if return_value:
             return dict(values=x)
         else:
             if flags is not None and flags.exp_epsilon > 0 and np.random.rand() < flags.exp_epsilon:
-                action = torch.randint(x.shape[0], (1,))[0]
+                action = tf.random.uniform(shape = [1,], minval=0, maxval=x.shape[0]), (1,)[0]
             else:
-                action = torch.argmax(x,dim=0)[0]
+                action = tf.math.argmax(x,axis=0)[0]
             return dict(action=action)
 
 # Model dict is only used in evaluation but not training
@@ -93,9 +94,9 @@ class Model:
         self.models = {}
         if not device == "cpu":
             device = 'cuda:' + str(device)
-        self.models['landlord'] = LandlordLstmModel().to(torch.device(device))
-        self.models['landlord_up'] = FarmerLstmModel().to(torch.device(device))
-        self.models['landlord_down'] = FarmerLstmModel().to(torch.device(device))
+        self.models['landlord'] = LandlordLstmModel()
+        self.models['landlord_up'] = FarmerLstmModel()
+        self.models['landlord_down'] = FarmerLstmModel()
 
     def forward(self, position, z, x, training=False, flags=None):
         model = self.models[position]
