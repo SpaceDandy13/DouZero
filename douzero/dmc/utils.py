@@ -88,12 +88,12 @@ def create_buffers(flags, device_iterator):
         for position in positions:
             x_dim = 319 if position == 'landlord' else 430
             specs = dict(
-                done=dict(size=(T,), dtype=tf.bool),
-                episode_return=dict(size=(T,), dtype=tf.float32),
-                target=dict(size=(T,), dtype=tf.float32),
-                obs_x_no_action=dict(size=(T, x_dim), dtype=tf.int8),
-                obs_action=dict(size=(T, 54), dtype=tf.int8),
-                obs_z=dict(size=(T, 5, 162), dtype=tf.int8),
+                done=dict(shape=(T,), dtype=tf.bool),
+                episode_return=dict(shape=(T,), dtype=tf.float32),
+                target=dict(shape=(T,), dtype=tf.float32),
+                obs_x_no_action=dict(shape=(T, x_dim), dtype=tf.int8),
+                obs_action=dict(shape=(T, 54), dtype=tf.int8),
+                obs_z=dict(shape=(T, 5, 162), dtype=tf.int8),
             )
             _buffers: Buffers = {key: [] for key in specs}
             for _ in range(flags.num_buffers):
