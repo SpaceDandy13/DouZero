@@ -12,7 +12,7 @@ from tensorflow.keras.layers import Dense, LSTM
 class LandlordLstmModel(tf.keras.Model):
     def __init__(self):
         super().__init__()
-        self.lstm = LSTM(162, 128, batch_first=True) # todo
+        self.lstm = LSTM(128,return_sequences=True, return_state=True) # 162, 128
         self.dense1 = Dense(512)    #373 + 128,
         self.dense2 = Dense(512)
         self.dense3 = Dense(512)
@@ -21,7 +21,7 @@ class LandlordLstmModel(tf.keras.Model):
         self.dense6 = Dense(1)
 
     def forward(self, z, x, return_value=False, flags=None):
-        lstm_out, (h_n, _) = self.lstm(z)
+        lstm_out, h_n, _ = self.lstm(z)
         lstm_out = lstm_out[:,-1,:]
         x = tf.concat([lstm_out,x], axis=-1)
         x = self.dense1(x)
@@ -47,7 +47,7 @@ class LandlordLstmModel(tf.keras.Model):
 class FarmerLstmModel(tf.keras.Model):
     def __init__(self):
         super().__init__()
-        self.lstm = LSTM(162, 128, batch_first=True) #todo
+        self.lstm = LSTM(128,return_sequences=True, return_state=True) # 162, 128
         self.dense1 = Dense(512)    #484 + 128, 
         self.dense2 = Dense(512)
         self.dense3 = Dense(512)
@@ -56,7 +56,7 @@ class FarmerLstmModel(tf.keras.Model):
         self.dense6 = Dense(1)
 
     def forward(self, z, x, return_value=False, flags=None):
-        lstm_out, (h_n, _) = self.lstm(z)
+        lstm_out, h_n, _ = self.lstm(z)
         lstm_out = lstm_out[:,-1,:]
         x = tf.concat([lstm_out,x], axis=-1)
         x = self.dense1(x)
