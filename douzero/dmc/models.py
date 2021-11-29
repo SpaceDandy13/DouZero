@@ -6,7 +6,7 @@ models into one class for convenience.
 import numpy as np
 
 import tensorflow as tf
-from tf.keras.layers import Dense, LSTM
+from tensorflow.keras.layers import Dense, LSTM
 
 
 class LandlordLstmModel(tf.keras.Model):
