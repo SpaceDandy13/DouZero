@@ -6,6 +6,7 @@ import numpy as np
 from collections import Counter
 import time
 
+import tensorflow as tf
 
 from .env_utils import Environment
 from douzero.env import Env
