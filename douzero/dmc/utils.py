@@ -6,8 +6,6 @@ import numpy as np
 from collections import Counter
 import time
 
-import torch 
-from torch import multiprocessing as mp
 
 from .env_utils import Environment
 from douzero.env import Env
@@ -34,7 +32,7 @@ log.setLevel(logging.INFO)
 
 # Buffers are used to transfer data between actor processes
 # and learner processes. They are shared tensors in GPU
-Buffers = typing.Dict[str, typing.List[torch.Tensor]]
+Buffers = typing.Dict[str, typing.List[tf.Tensor]]
 
 def create_env(flags):
     return Env(flags.objective)
@@ -52,7 +50,7 @@ def get_batch(free_queue,
     with lock:
         indices = [full_queue.get() for _ in range(flags.batch_size)]
     batch = {
-        key: torch.stack([buffers[key][m] for m in indices], dim=1)
+        key: tf.stack([buffers[key][m] for m in indices], axis=1)
         for key in buffers
     }
     for m in indices:
@@ -66,12 +64,12 @@ def create_optimizers(flags, learner_model):
     positions = ['landlord', 'landlord_up', 'landlord_down']
     optimizers = {}
     for position in positions:
-        optimizer = torch.optim.RMSprop(
-            learner_model.parameters(position),
-            lr=flags.learning_rate,
+        optimizer = tf.keras.optimizers.RMSprop(
+            #learner_model.parameters(position),   #todo
+            learning_rate=flags.learning_rate,
             momentum=flags.momentum,
-            eps=flags.epsilon,
-            alpha=flags.alpha)
+            epsilon=flags.epsilon,
+            rho=flags.alpha)
         optimizers[position] = optimizer
     return optimizers
 
@@ -89,20 +87,20 @@ def create_buffers(flags, device_iterator):
         for position in positions:
             x_dim = 319 if position == 'landlord' else 430
             specs = dict(
-                done=dict(size=(T,), dtype=torch.bool),
-                episode_return=dict(size=(T,), dtype=torch.float32),
-                target=dict(size=(T,), dtype=torch.float32),
-                obs_x_no_action=dict(size=(T, x_dim), dtype=torch.int8),
-                obs_action=dict(size=(T, 54), dtype=torch.int8),
-                obs_z=dict(size=(T, 5, 162), dtype=torch.int8),
+                done=dict(size=(T,), dtype=tf.bool),
+                episode_return=dict(size=(T,), dtype=tf.float32),
+                target=dict(size=(T,), dtype=tf.float32),
+                obs_x_no_action=dict(size=(T, x_dim), dtype=tf.int8),
+                obs_action=dict(size=(T, 54), dtype=tf.int8),
+                obs_z=dict(size=(T, 5, 162), dtype=tf.int8),
             )
             _buffers: Buffers = {key: [] for key in specs}
             for _ in range(flags.num_buffers):
                 for key in _buffers:
-                    if not device == "cpu":
-                        _buffer = torch.empty(**specs[key]).to(torch.device('cuda:'+str(device))).share_memory_()
+                    if not device == "cpu":     #todo bug
+                        _buffer = tf.zeros(**specs[key])#.to(torch.device('cuda:'+str(device))).share_memory_()
                     else:
-                        _buffer = torch.empty(**specs[key]).to(torch.device('cpu')).share_memory_()
+                        _buffer = tf.zeros(**specs[key])#.to(torch.device('cpu')).share_memory_()
                     _buffers[key].append(_buffer)
             buffers[device][position] = _buffers
     return buffers
@@ -135,7 +133,7 @@ def act(i, device, free_queue, full_queue, model, buffers, flags):
             while True:
                 obs_x_no_action_buf[position].append(env_output['obs_x_no_action'])
                 obs_z_buf[position].append(env_output['obs_z'])
-                with torch.no_grad():
+                with tf.stop_gradient():    #todo
                     agent_output = model.forward(position, obs['z_batch'], obs['x_batch'], flags=flags)
                 _action_idx = int(agent_output['action'].cpu().detach().numpy())
                 action = obs['legal_actions'][_action_idx]
@@ -191,5 +189,5 @@ def _cards2tensor(list_cards):
     See Figure 2 in https://arxiv.org/pdf/2106.06135.pdf
     """
     matrix = _cards2array(list_cards)
-    matrix = torch.from_numpy(matrix)
+    matrix = tf.convert_to_tensor(matrix)
     return matrix
