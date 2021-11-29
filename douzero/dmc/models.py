@@ -108,9 +108,9 @@ class Model:
         self.models['landlord_down']#.share_memory()
 
     def eval(self):
-        self.models['landlord'].eval()
-        self.models['landlord_up'].eval()
-        self.models['landlord_down'].eval()
+        self.models['landlord']#.eval()
+        self.models['landlord_up']#.eval()
+        self.models['landlord_down']#.eval()
 
     def parameters(self, position):
         return self.models[position].parameters()
