@@ -145,7 +145,7 @@ def train(flags):
         for i in range(flags.num_actors):
             actor = ctx.Process(
                 target=act,
-                args=(i, device, free_queue[device], full_queue[device], None, None, flags))
+                args=(i, device, free_queue[device], full_queue[device], None, buffers[device], flags))
                 # args=(i, device, free_queue[device], full_queue[device], models[device], buffers[device], flags))
             actor.start()
             actor_processes.append(actor)
