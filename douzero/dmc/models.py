@@ -103,9 +103,9 @@ class Model:
         return model.forward(z, x, training, flags)
 
     def share_memory(self):
-        self.models['landlord'].share_memory()
-        self.models['landlord_up'].share_memory()
-        self.models['landlord_down'].share_memory()
+        self.models['landlord']#.share_memory()
+        self.models['landlord_up']#.share_memory()
+        self.models['landlord_down']#.share_memory()
 
     def eval(self):
         self.models['landlord'].eval()
