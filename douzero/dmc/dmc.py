@@ -30,29 +30,20 @@ def learn(position,
           flags,
           lock):
     """Performs a learning (optimization) step."""
-    # if flags.training_device != "cpu":
-    #     device = torch.device('cuda:'+str(flags.training_device))
-    # else:
-    #     device = torch.device('cpu')
-    # obs_x_no_action = batch['obs_x_no_action'].to(device)
     
     obs_x_no_action = batch['obs_x_no_action']
     obs_action = batch['obs_action']
-    # obs_x = torch.cat((obs_x_no_action, obs_action), dim=2).float()
     obs_x = tf.concat((obs_x_no_action, obs_action), aixs=2).float()
 
-    # obs_x = torch.flatten(obs_x, 0, 1)
     shape_obs_x = obs_x.get_shape().as_list()
     shape_obs_x[1] = shape_obs_x[0]*shape_obs_x[1]
     shape_obs_x.pop(0)
     obs_x = tf.reshape(obs_x, shape_obs_x)
-    # obs_z = torch.flatten(batch['obs_z'].to(device), 0, 1).float()
     shape_obs_z = obs_z.get_shape().as_list()
     shape_obs_z[1] = shape_obs_z[0]*shape_obs_z[1]
     shape_obs_z.pop(0)
     obs_z = tf.reshape(obs_z, shape_obs_z)
     tf.cast(obs_z, tf.float32)
-    # target = torch.flatten(batch['target'].to(device), 0, 1)
     shape_target = batch['target'].get_shape().as_list()
     shape_target[1] = shape_target[0]*shape_target[1]
     shape_target.pop(0)
@@ -70,10 +61,6 @@ def learn(position,
             'loss_'+position: loss.item(),
         }
         
-        # optimizer.zero_grad()
-        # loss.backward()
-        # nn.utils.clip_grad_norm_(model.parameters(), flags.max_grad_norm)
-        # optimizer.step()
         gradients = tape.gradient(loss, model.trainable_variables)
         gradients = [tf.clip_by_norm(g, flags.max_grad_norm) for g in gradients]
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
@@ -90,9 +77,7 @@ def train(flags):
     Then it will start subprocesses as actors. Then, it will call
     learning function with  multiple threads.
     """
-    # if not flags.actor_device_cpu or flags.training_device != 'cpu':
-    #     if not torch.cuda.is_available():
-    #         raise AssertionError("CUDA not available. If you have GPUs, please specify the ID after `--gpu_devices`. Otherwise, please train with CPU with `python3 train.py --actor_device_cpu --training_device cpu`")
+
     plogger = FileWriter(
         xpid=flags.xpid,
         xp_args=flags.__dict__,
@@ -151,20 +136,8 @@ def train(flags):
     frames, stats = 0, {k: 0 for k in stat_keys}
     position_frames = {'landlord':0, 'landlord_up':0, 'landlord_down':0}
 
-    # Load models if any
-    # if flags.load_model and os.path.exists(checkpointpath):
-    #     checkpoint_states = torch.load(
-    #         checkpointpath, map_location=("cuda:"+str(flags.training_device) if flags.training_device != "cpu" else "cpu")
-    #     )
-    #     for k in ['landlord', 'landlord_up', 'landlord_down']:
-    #         learner_model.get_model(k).load_state_dict(checkpoint_states["model_state_dict"][k])
-    #         optimizers[k].load_state_dict(checkpoint_states["optimizer_state_dict"][k])
-    #         for device in device_iterator:
-    #             models[device].get_model(k).load_state_dict(learner_model.get_model(k).state_dict())
-    #     stats = checkpoint_states["stats"]
-    #     frames = checkpoint_states["frames"]
-    #     position_frames = checkpoint_states["position_frames"]
-    #     log.info(f"Resuming preempted job, current stats:\n{stats}")
+    # Load models if any ===========
+    
 
     # Starting actor processes
     for device in device_iterator:
@@ -172,7 +145,8 @@ def train(flags):
         for i in range(flags.num_actors):
             actor = ctx.Process(
                 target=act,
-                args=(i, device, free_queue[device], full_queue[device], models[device], buffers[device], flags))
+                # args=(i, device, free_queue[device], full_queue[device], models[device], buffers[device], flags))
+                args=(i, None, None, None, None, None, flags))
             actor.start()
             actor_processes.append(actor)
 
@@ -229,20 +203,11 @@ def train(flags):
         saver = tf.compat.v1.train.Saver(parameters)
         sess = tf.compat.v1.Session()
         saver.save(sess, checkpointpath)
-        # torch.save({
-        #     'model_state_dict': {k: _models[k].state_dict() for k in _models},
-        #     'optimizer_state_dict': {k: optimizers[k].state_dict() for k in optimizers},
-        #     "stats": stats,
-        #     'flags': vars(flags),
-        #     'frames': frames,
-        #     'position_frames': position_frames
-        # }, checkpointpath)
 
         # Save the weights for evaluation purpose
         for position in ['landlord', 'landlord_up', 'landlord_down']:
             model_weights_dir = os.path.expandvars(os.path.expanduser(
                 '%s/%s/%s' % (flags.savedir, flags.xpid, position+'_weights_'+str(frames)+'.ckpt')))
-            # torch.save(learner_model.get_model(position).state_dict(), model_weights_dir)
             saver = tf.compat.v1.train.Saver(learner_model.get_model(position).state_dict())
             saver.save(sess,model_weights_dir)
 
