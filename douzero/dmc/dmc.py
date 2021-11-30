@@ -5,10 +5,9 @@ import timeit
 import pprint
 from collections import deque
 import numpy as np
+import multiprocessing
 
-import torch
 from torch import multiprocessing as mp
-from torch import nn
 
 import tensorflow as tf
 
@@ -108,13 +107,13 @@ def train(flags):
    
     # Initialize queues
     actor_processes = []
-    ctx = mp.get_context('spawn')
+    # ctx = mp.get_context('spawn')
     free_queue = {}
     full_queue = {}
         
     for device in device_iterator:
-        _free_queue = {'landlord': ctx.SimpleQueue(), 'landlord_up': ctx.SimpleQueue(), 'landlord_down': ctx.SimpleQueue()}
-        _full_queue = {'landlord': ctx.SimpleQueue(), 'landlord_up': ctx.SimpleQueue(), 'landlord_down': ctx.SimpleQueue()}
+        _free_queue = {'landlord': multiprocessing.SimpleQueue(), 'landlord_up': multiprocessing.SimpleQueue(), 'landlord_down': multiprocessing.SimpleQueue()}
+        _full_queue = {'landlord': multiprocessing.SimpleQueue(), 'landlord_up': multiprocessing.SimpleQueue(), 'landlord_down': multiprocessing.SimpleQueue()}
         free_queue[device] = _free_queue
         full_queue[device] = _full_queue
 
@@ -143,9 +142,9 @@ def train(flags):
     for device in device_iterator:
         num_actors = flags.num_actors
         for i in range(flags.num_actors):
-            actor = ctx.Process(
+            actor = multiprocessing.Process(
                 target=act,
-                args=(i, device, free_queue[device], full_queue[device], None, buffers[device], flags))
+                args=(i, device, free_queue[device], full_queue[device], models[device], buffers[device], flags))
                 # args=(i, device, free_queue[device], full_queue[device], models[device], buffers[device], flags))
             actor.start()
             actor_processes.append(actor)
