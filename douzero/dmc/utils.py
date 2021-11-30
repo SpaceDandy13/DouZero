@@ -98,10 +98,7 @@ def create_buffers(flags, device_iterator):
             _buffers: Buffers = {key: [] for key in specs}
             for _ in range(flags.num_buffers):
                 for key in _buffers:
-                    if not device == "cpu":     #todo bug
-                        _buffer = tf.zeros(**specs[key])
-                    else:
-                        _buffer = tf.zeros(**specs[key])
+                    _buffer = tf.zeros(**specs[key]) #share_ todo
                     _buffers[key].append(_buffer)
             buffers[device][position] = _buffers
     return buffers
@@ -193,3 +190,83 @@ def _cards2tensor(list_cards):
     matrix = _cards2array(list_cards)
     matrix = tf.convert_to_tensor(matrix)
     return matrix
+
+
+
+def act1(i, device, free_queue, full_queue, model, buffers, flags):
+    """
+    This function will run forever until we stop it. It will generate
+    data from the environment and send the data to buffer. It uses
+    a free queue and full queue to syncup with the main process.
+    """
+    positions = ['landlord', 'landlord_up', 'landlord_down']
+    try:
+        T = flags.unroll_length
+        log.info('Device %s Actor %i started.', str(device), i)
+
+        env = create_env(flags)
+        env = Environment(env, device)
+
+        done_buf = {p: [] for p in positions}
+        episode_return_buf = {p: [] for p in positions}
+        target_buf = {p: [] for p in positions}
+        obs_x_no_action_buf = {p: [] for p in positions}
+        obs_action_buf = {p: [] for p in positions}
+        obs_z_buf = {p: [] for p in positions}
+        size = {p: 0 for p in positions}
+
+        position, obs, env_output = env.initial()
+
+        while True:
+            obs_x_no_action_buf[position].append(env_output['obs_x_no_action'])
+            obs_z_buf[position].append(env_output['obs_z'])
+            # with tf.stop_gradient():    #todo
+            agent_output = model.forward(position, obs['z_batch'], obs['x_batch'], flags=flags)
+                
+            _action_idx = int(agent_output['action'].cpu().detach().numpy())
+            action = obs['legal_actions'][_action_idx]
+            obs_action_buf[position].append(_cards2tensor(action))
+            size[position] += 1
+            position, obs, env_output = env.step(action)
+            if env_output['done']:
+                for p in positions:
+                    diff = size[p] - len(target_buf[p])
+                    if diff > 0:
+                        done_buf[p].extend([False for _ in range(diff-1)])
+                        done_buf[p].append(True)
+
+                        episode_return = env_output['episode_return'] if p == 'landlord' else -env_output['episode_return']
+                        episode_return_buf[p].extend([0.0 for _ in range(diff-1)])
+                        episode_return_buf[p].append(episode_return)
+                        target_buf[p].extend([episode_return for _ in range(diff)])
+                break
+
+        for p in positions:
+            while size[p] > T: 
+                index = free_queue[p].get()
+                if index is None:
+                    break
+                for t in range(T):
+                    buffers[p]['done'][index][t, ...] = done_buf[p][t]
+                    buffers[p]['episode_return'][index][t, ...] = episode_return_buf[p][t]
+                    buffers[p]['target'][index][t, ...] = target_buf[p][t]
+                    buffers[p]['obs_x_no_action'][index][t, ...] = obs_x_no_action_buf[p][t]
+                    buffers[p]['obs_action'][index][t, ...] = obs_action_buf[p][t]
+                    buffers[p]['obs_z'][index][t, ...] = obs_z_buf[p][t]
+                full_queue[p].put(index)
+                done_buf[p] = done_buf[p][T:]
+                episode_return_buf[p] = episode_return_buf[p][T:]
+                target_buf[p] = target_buf[p][T:]
+                obs_x_no_action_buf[p] = obs_x_no_action_buf[p][T:]
+                obs_action_buf[p] = obs_action_buf[p][T:]
+                obs_z_buf[p] = obs_z_buf[p][T:]
+                size[p] -= T
+
+    except KeyboardInterrupt:
+        pass  
+    except Exception as e:
+        log.error('Exception in worker process %i', i)
+        traceback.print_exc()
+        print()
+        raise e
+    return i, device, free_queue, full_queue, model, buffers, flags

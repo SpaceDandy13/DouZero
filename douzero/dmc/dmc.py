@@ -5,15 +5,14 @@ import timeit
 import pprint
 from collections import deque
 import numpy as np
-import multiprocessing
 
-from torch import multiprocessing as mp
+import multiprocessing as mp
 
 import tensorflow as tf
 
 from .file_writer import FileWriter
 from .models import Model
-from .utils import get_batch, log, create_env, create_buffers, create_optimizers, act
+from .utils import get_batch, log, create_env, create_buffers, create_optimizers, act, act1
 
 mean_episode_return_buf = {p:deque(maxlen=100) for p in ['landlord', 'landlord_up', 'landlord_down']}
 
@@ -112,8 +111,8 @@ def train(flags):
     full_queue = {}
         
     for device in device_iterator:
-        _free_queue = {'landlord': multiprocessing.SimpleQueue(), 'landlord_up': multiprocessing.SimpleQueue(), 'landlord_down': multiprocessing.SimpleQueue()}
-        _full_queue = {'landlord': multiprocessing.SimpleQueue(), 'landlord_up': multiprocessing.SimpleQueue(), 'landlord_down': multiprocessing.SimpleQueue()}
+        _free_queue = {'landlord': mp.SimpleQueue(), 'landlord_up': mp.SimpleQueue(), 'landlord_down': mp.SimpleQueue()}
+        _full_queue = {'landlord': mp.SimpleQueue(), 'landlord_up': mp.SimpleQueue(), 'landlord_down': mp.SimpleQueue()}
         free_queue[device] = _free_queue
         full_queue[device] = _full_queue
 
@@ -142,29 +141,12 @@ def train(flags):
     for device in device_iterator:
         num_actors = flags.num_actors
         for i in range(flags.num_actors):
-            actor = multiprocessing.Process(
+            actor = mp.Process(
                 target=act,
                 args=(i, device, free_queue[device], full_queue[device], models[device], buffers[device], flags))
-                # args=(i, device, free_queue[device], full_queue[device], models[device], buffers[device], flags))
             actor.start()
             actor_processes.append(actor)
 
-    def batch_and_learn(i, device, position, local_lock, position_lock, lock=threading.Lock()):
-        """Thread target for the learning process."""
-        nonlocal frames, position_frames, stats
-        while frames < flags.total_frames:
-            batch = get_batch(free_queue[device][position], full_queue[device][position], buffers[device][position], flags, local_lock)
-            _stats = learn(position, models, learner_model.get_model(position), batch, 
-                optimizers[position], flags, position_lock)
-
-            with lock:
-                for k in _stats:
-                    stats[k] = _stats[k]
-                to_log = dict(frames=frames)
-                to_log.update({k: stats[k] for k in stat_keys})
-                plogger.log(to_log)
-                frames += T * B
-                position_frames[position] += T * B
 
     for device in device_iterator:
         for m in range(flags.num_buffers):
@@ -172,50 +154,41 @@ def train(flags):
             free_queue[device]['landlord_up'].put(m)
             free_queue[device]['landlord_down'].put(m)
 
-    threads = []
-    locks = {}
-    for device in device_iterator:
-        locks[device] = {'landlord': threading.Lock(), 'landlord_up': threading.Lock(), 'landlord_down': threading.Lock()}
-    position_locks = {'landlord': threading.Lock(), 'landlord_up': threading.Lock(), 'landlord_down': threading.Lock()}
-
-    for device in device_iterator:
-        for i in range(flags.num_threads):
-            for position in ['landlord', 'landlord_up', 'landlord_down']:
-                thread = threading.Thread(
-                    target=batch_and_learn, name='batch-and-learn-%d' % i, args=(i,device,position,locks[device][position],position_locks[position]))
-                thread.start()
-                threads.append(thread)
     
     def checkpoint(frames):
         if flags.disable_checkpoint:
             return
         log.info('Saving checkpoint to %s', checkpointpath)
         _models = learner_model.get_models()
-        # parameters = {
-        #     'model_state_dict': {k: _models[k].state_dict() for k in _models},
-        #     'optimizer_state_dict': {k: optimizers[k].state_dict() for k in optimizers},
-        #     "stats": stats,
-        #     'flags': vars(flags),
-        #     'frames': frames,
-        #     'position_frames': position_frames
-        # }
-        # saver = tf.compat.v1.train.Saver(parameters)
-        # sess = tf.compat.v1.Session()
-        # saver.save(sess, checkpointpath)
 
         # Save the weights for evaluation purpose
         for position in ['landlord', 'landlord_up', 'landlord_down']:
             model_weights_dir = os.path.expandvars(os.path.expanduser(
                 '%s/%s/%s' % (flags.savedir, flags.xpid, position+'_weights_'+str(frames)+'.ckpt')))
             learner_model.get_model(position).save_weights(model_weights_dir)
-            # saver = tf.compat.v1.train.Saver(learner_model.get_model(position).state_dict())
-            # saver.save(sess,model_weights_dir)
+
+
+
 
     fps_log = []
     timer = timeit.default_timer
     try:
         last_checkpoint_time = timer() - flags.save_interval * 60
         while frames < flags.total_frames:
+            i, device, free_queue[device], full_queue[device], models[device], buffers[device], flags = act1(i, device, free_queue[device], full_queue[device], models[device], buffers[device], flags)
+
+            batch = get_batch(free_queue[device][position], full_queue[device][position], buffers[device][position], flags, local_lock)
+            _stats = learn(position, models, learner_model.get_model(position), batch, 
+                optimizers[position], flags, position_lock)
+
+            for k in _stats:
+                stats[k] = _stats[k]
+            to_log = dict(frames=frames)
+            to_log.update({k: stats[k] for k in stat_keys})
+            plogger.log(to_log)
+            frames += T * B
+            position_frames[position] += T * B
+
             start_frames = frames
             position_start_frames = {k: position_frames[k] for k in position_frames}
             start_time = timer()
