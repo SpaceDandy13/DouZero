@@ -4,7 +4,7 @@ to use. When a game is finished, instead of mannualy reseting
 the environment, we do it automatically.
 """
 import numpy as np
-import torch 
+import tensorflow as tf
 
 def _format_observation(obs, device):
     """
@@ -14,11 +14,10 @@ def _format_observation(obs, device):
     position = obs['position']
     if not device == "cpu":
         device = 'cuda:' + str(device)
-    device = torch.device(device)
-    x_batch = torch.from_numpy(obs['x_batch']).to(device)
-    z_batch = torch.from_numpy(obs['z_batch']).to(device)
-    x_no_action = torch.from_numpy(obs['x_no_action'])
-    z = torch.from_numpy(obs['z'])
+    x_batch = tf.convert_to_tensor(obs['x_batch'])
+    z_batch = tf.convert_to_tensor(obs['z_batch'])
+    x_no_action = tf.convert_to_tensor(obs['x_no_action'])
+    z = tf.convert_to_tensor(obs['z'])
     obs = {'x_batch': x_batch,
            'z_batch': z_batch,
            'legal_actions': obs['legal_actions'],
@@ -35,9 +34,9 @@ class Environment:
 
     def initial(self):
         initial_position, initial_obs, x_no_action, z = _format_observation(self.env.reset(), self.device)
-        initial_reward = torch.zeros(1, 1)
-        self.episode_return = torch.zeros(1, 1)
-        initial_done = torch.ones(1, 1, dtype=torch.bool)
+        initial_reward = tf.zeros(1)
+        self.episode_return = tf.zeros(1)
+        initial_done = tf.ones(1, dtype=tf.bool)
 
         return initial_position, initial_obs, dict(
             done=initial_done,
@@ -54,11 +53,11 @@ class Environment:
 
         if done:
             obs = self.env.reset()
-            self.episode_return = torch.zeros(1, 1)
+            self.episode_return = tf.zeros(1)
 
         position, obs, x_no_action, z = _format_observation(obs, self.device)
-        reward = torch.tensor(reward).view(1, 1)
-        done = torch.tensor(done).view(1, 1)
+        reward = tf.convert_to_tensor(reward).reshape(1)
+        done = tf.convert_to_tensor(done).reshape(1)
         
         return position, obs, dict(
             done=done,
