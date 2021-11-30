@@ -6,7 +6,7 @@ import pprint
 from collections import deque
 import numpy as np
 
-import multiprocessing as mp
+import queue as mp
 
 import tensorflow as tf
 
@@ -25,8 +25,7 @@ def learn(position,
           model,
           batch,
           optimizer,
-          flags,
-          lock):
+          flags):
     """Performs a learning (optimization) step."""
     
     obs_x_no_action = batch['obs_x_no_action']
@@ -50,23 +49,23 @@ def learn(position,
     episode_returns = batch['episode_return'][batch['done']]
     mean_episode_return_buf[position].append(tf.reduce_mean(episode_returns))
         
-    with lock:
-        with tf.GradientTape() as tape:
-            learner_outputs = model(obs_z, obs_x, return_value=True)
-            loss = compute_loss(learner_outputs['values'], target)
-        stats = {
-            'mean_episode_return_'+position: tf.reduce_mean(tf.stack([_r for _r in mean_episode_return_buf[position]])).item(),
-            'loss_'+position: loss.item(),
-        }
+
+    with tf.GradientTape() as tape:
+        learner_outputs = model(obs_z, obs_x, return_value=True)
+        loss = compute_loss(learner_outputs['values'], target)
+    stats = {
+        'mean_episode_return_'+position: tf.reduce_mean(tf.stack([_r for _r in mean_episode_return_buf[position]])).item(),
+        'loss_'+position: loss.item(),
+    }
         
-        gradients = tape.gradient(loss, model.trainable_variables)
-        gradients = [tf.clip_by_norm(g, flags.max_grad_norm) for g in gradients]
-        optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+    gradients = tape.gradient(loss, model.trainable_variables)
+    gradients = [tf.clip_by_norm(g, flags.max_grad_norm) for g in gradients]
+    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
 
-        for actor_model in actor_models.values():
-            actor_model.get_model(position).load_state_dict(model.state_dict())
-        return stats
+    for actor_model in actor_models.values():
+        actor_model.get_model(position).load_state_dict(model.state_dict())
+    return stats
 
 def train(flags):  
     """
@@ -165,11 +164,17 @@ def train(flags):
     try:
         last_checkpoint_time = timer() - flags.save_interval * 60
         while frames < flags.total_frames:
-            i, device, free_queue[device], full_queue[device], models[device], buffers[device], flags = act1(i, device, free_queue[device], full_queue[device], models[device], buffers[device], flags)
+            _, device, free_queue[device], full_queue[device], models[device], buffers[device], flags = act1(0, device, free_queue[device], full_queue[device], models[device], buffers[device], flags)
 
-            batch = get_batch(free_queue[device][position], full_queue[device][position], buffers[device][position], flags, local_lock)
+            indices = [full_queue.get() for _ in range(flags.batch_size)]
+            batch = {
+                key: tf.stack([buffers[key][m] for m in indices], axis=1)
+                for key in buffers
+            }
+            for m in indices:
+                free_queue.put(m)
             _stats = learn(position, models, learner_model.get_model(position), batch, 
-                optimizers[position], flags, position_lock)
+                optimizers[position], flags)
 
             for k in _stats:
                 stats[k] = _stats[k]
