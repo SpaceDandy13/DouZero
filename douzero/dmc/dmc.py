@@ -166,6 +166,8 @@ def train(flags):
         while frames < flags.total_frames:
             _, device, free_queue[device], full_queue[device], models[device], buffers[device], flags = act1(0, device, free_queue[device], full_queue[device], models[device], buffers[device], flags)
 
+            if(full_queue.qsize() < flags.batch_size):
+                continue
             indices = [full_queue.get() for _ in range(flags.batch_size)]
             batch = {
                 key: tf.stack([buffers[key][m] for m in indices], axis=1)
