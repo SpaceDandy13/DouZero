@@ -57,7 +57,7 @@ class Environment:
 
         position, obs, x_no_action, z = _format_observation(obs, self.device)
         reward = tf.reshape(tf.convert_to_tensor(reward), 1)
-        done = tf.convert_to_tensor(done).reshape(1)
+        done = tf.reshape(tf.convert_to_tensor(done), 1)
         
         return position, obs, dict(
             done=done,
