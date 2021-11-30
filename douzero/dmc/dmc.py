@@ -207,8 +207,9 @@ def train(flags):
         for position in ['landlord', 'landlord_up', 'landlord_down']:
             model_weights_dir = os.path.expandvars(os.path.expanduser(
                 '%s/%s/%s' % (flags.savedir, flags.xpid, position+'_weights_'+str(frames)+'.ckpt')))
-            saver = tf.compat.v1.train.Saver(learner_model.get_model(position).state_dict())
-            saver.save(sess,model_weights_dir)
+            learner_model.get_model(position).save_weight(model_weights_dir)
+            # saver = tf.compat.v1.train.Saver(learner_model.get_model(position).state_dict())
+            # saver.save(sess,model_weights_dir)
 
     fps_log = []
     timer = timeit.default_timer
