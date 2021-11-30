@@ -191,17 +191,17 @@ def train(flags):
             return
         log.info('Saving checkpoint to %s', checkpointpath)
         _models = learner_model.get_models()
-        parameters = {
-            'model_state_dict': {k: _models[k].state_dict() for k in _models},
-            'optimizer_state_dict': {k: optimizers[k].state_dict() for k in optimizers},
-            "stats": stats,
-            'flags': vars(flags),
-            'frames': frames,
-            'position_frames': position_frames
-        }
-        saver = tf.compat.v1.train.Saver(parameters)
-        sess = tf.compat.v1.Session()
-        saver.save(sess, checkpointpath)
+        # parameters = {
+        #     'model_state_dict': {k: _models[k].state_dict() for k in _models},
+        #     'optimizer_state_dict': {k: optimizers[k].state_dict() for k in optimizers},
+        #     "stats": stats,
+        #     'flags': vars(flags),
+        #     'frames': frames,
+        #     'position_frames': position_frames
+        # }
+        # saver = tf.compat.v1.train.Saver(parameters)
+        # sess = tf.compat.v1.Session()
+        # saver.save(sess, checkpointpath)
 
         # Save the weights for evaluation purpose
         for position in ['landlord', 'landlord_up', 'landlord_down']:
