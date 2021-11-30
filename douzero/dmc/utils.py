@@ -223,7 +223,7 @@ def act1(i, device, free_queue, full_queue, model, buffers, flags):
             # with tf.stop_gradient():    #todo
             agent_output = model.forward(position, obs['z_batch'], obs['x_batch'], flags=flags)
                 
-            _action_idx = int(agent_output['action'].cpu().numpy())
+            _action_idx = int(agent_output['action'].numpy())
             action = obs['legal_actions'][_action_idx]
             obs_action_buf[position].append(_cards2tensor(action))
             size[position] += 1
