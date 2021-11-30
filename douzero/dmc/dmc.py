@@ -137,16 +137,6 @@ def train(flags):
     # Load models if any ===========
     
 
-    # Starting actor processes
-    for device in device_iterator:
-        num_actors = flags.num_actors
-        for i in range(flags.num_actors):
-            actor = mp.Process(
-                target=act,
-                args=(i, device, free_queue[device], full_queue[device], models[device], buffers[device], flags))
-            actor.start()
-            actor_processes.append(actor)
-
 
     for device in device_iterator:
         for m in range(flags.num_buffers):
