@@ -36,15 +36,12 @@ class LandlordLstmModel(tf.keras.Model):
         x = tf.nn.relu(x)
         x = self.dense6(x)
         if return_value:
-            print("b1")
             return dict(values=x)
         else:
             if flags is not None and flags.exp_epsilon > 0 and np.random.rand() < flags.exp_epsilon:
-                action = tf.random.uniform(shape = [1,], minval=0, maxval=x.shape[0]), (1,)[0]
-                print("a1")
+                action = tf.random.uniform(shape = [1,], minval=0, maxval=x.shape[0], dtype=tf.int32)
             else:
                 action = tf.math.argmax(x,axis=0)[0]
-                print("c1")
             return dict(action=action)
 
 class FarmerLstmModel(tf.keras.Model):
@@ -74,14 +71,11 @@ class FarmerLstmModel(tf.keras.Model):
         x = tf.nn.relu(x)
         x = self.dense6(x)
         if return_value:
-            print("b")
             return dict(values=x)
         else:
             if flags is not None and flags.exp_epsilon > 0 and np.random.rand() < flags.exp_epsilon:
-                print("a")
-                action = tf.random.uniform(shape = [1,], minval=0, maxval=x.shape[0]), (1,)[0]
+                action = tf.random.uniform(shape = [1,], minval=0, maxval=x.shape[0], dtype=tf.int32)
             else:
-                print("c")
                 action = tf.math.argmax(x,axis=0)[0]
             return dict(action=action)
 
