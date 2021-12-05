@@ -21,7 +21,6 @@ def compute_loss(logits, targets):
     return loss
 
 def learn(position,
-          actor_models,
           model,
           batch,
           optimizer,
@@ -63,8 +62,8 @@ def learn(position,
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
 
-    for actor_model in actor_models.values():
-        actor_model.get_model(position).load_state_dict(model.state_dict())
+    # for actor_model in actor_models.values():
+    #     actor_model.get_model(position).load_state_dict(model.state_dict())
     return stats
 
 def train(flags):  
@@ -86,19 +85,15 @@ def train(flags):
     T = flags.unroll_length
     B = flags.batch_size
 
-    if flags.actor_device_cpu:
-        device_iterator = ['cpu']
-    else:
-        device_iterator = range(flags.num_actor_devices)
-        assert flags.num_actor_devices <= len(flags.gpu_devices.split(',')), 'The number of actor devices can not exceed the number of available devices'
-
+    
     # Initialize actor models
-    models = {}
-    for device in device_iterator:
-        model = Model(device=device)
-        model.share_memory()
-        model.eval()
-        models[device] = model
+    # models = {}
+    # for device in device_iterator:
+    #     model = Model(device=device)
+    #     model.share_memory()
+    #     model.eval()
+    #     models[device] = model
+    model = Model(device=device)
 
     # Initialize buffers
     buffers = create_buffers(flags, device_iterator)
@@ -116,10 +111,10 @@ def train(flags):
         full_queue[device] = _full_queue
 
     # Learner model for training
-    learner_model = Model(device=flags.training_device)
+    # learner_model = Model(device=flags.training_device)
 
     # Create optimizers
-    optimizers = create_optimizers(flags, learner_model)
+    optimizers = create_optimizers(flags, model)
 
     # Stat Keys
     stat_keys = [
@@ -148,13 +143,13 @@ def train(flags):
         if flags.disable_checkpoint:
             return
         log.info('Saving checkpoint to %s', checkpointpath)
-        _models = learner_model.get_models()
+        _models = model.get_models()
 
         # Save the weights for evaluation purpose
         for position in ['landlord', 'landlord_up', 'landlord_down']:
             model_weights_dir = os.path.expandvars(os.path.expanduser(
                 '%s/%s/%s' % (flags.savedir, flags.xpid, position+'_weights_'+str(frames)+'.ckpt')))
-            learner_model.get_model(position).save_weights(model_weights_dir)
+            model.get_model(position).save_weights(model_weights_dir)
 
 
 
@@ -164,32 +159,33 @@ def train(flags):
     try:
         last_checkpoint_time = timer() - flags.save_interval * 60
         while frames < flags.total_frames:
-            _, device, free_queue[device], full_queue[device], models[device], buffers[device], flags = act1(0, device, free_queue[device], full_queue[device], models[device], buffers[device], flags)
+            _, _, free_queue[0], full_queue[0], model, buffers[0], flags = act1(0, 0, free_queue[0], full_queue[0], models, buffers[0], flags)
 
-            if(len(full_queue) < flags.batch_size):
-                continue
-            indices = [full_queue.get() for _ in range(flags.batch_size)]
-            batch = {
-                key: tf.stack([buffers[key][m] for m in indices], axis=1)
-                for key in buffers
-            }
-            for m in indices:
-                free_queue.put(m)
-            _stats = learn(position, models, learner_model.get_model(position), batch, 
-                optimizers[position], flags)
+            for position in ['landlord', 'landlord_up', 'landlord_down']:
+                if(len(full_queue[0][position]) < flags.batch_size):
+                    continue
+                indices = [full_queue[0][position].get() for _ in range(flags.batch_size)]
+                batch = {
+                    key: tf.stack([buffers[key][m] for m in indices], axis=1)
+                    for key in buffers
+                }
+                for m in indices:
+                    free_queue[0][position].put(m)
+                _stats = learn(position, model.get_model(position), batch, 
+                    optimizers[position], flags)
 
-            for k in _stats:
-                stats[k] = _stats[k]
-            to_log = dict(frames=frames)
-            to_log.update({k: stats[k] for k in stat_keys})
-            plogger.log(to_log)
-            frames += T * B
-            position_frames[position] += T * B
+                for k in _stats:
+                    stats[k] = _stats[k]
+                to_log = dict(frames=frames)
+                to_log.update({k: stats[k] for k in stat_keys})
+                plogger.log(to_log)
+                frames += T * B
+                position_frames[position] += T * B
 
             start_frames = frames
             position_start_frames = {k: position_frames[k] for k in position_frames}
             start_time = timer()
-            time.sleep(5)
+            # time.sleep(5)
 
             if timer() - last_checkpoint_time > flags.save_interval * 60:  
                 checkpoint(frames)
