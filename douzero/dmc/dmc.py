@@ -163,7 +163,7 @@ def train(flags):
             _, _, free_queue[device], full_queue[device], model, buffers[device], flags = act1(0, device, free_queue[device], full_queue[device], model, buffers[device], flags)
 
             for position in ['landlord', 'landlord_up', 'landlord_down']:
-                if(len(full_queue[device][position]) < flags.batch_size):
+                if(full_queue[device][position].qsize < flags.batch_size):
                     continue
                 indices = [full_queue[device][position].get() for _ in range(flags.batch_size)]
                 batch = {
