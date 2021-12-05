@@ -88,15 +88,16 @@ def train(flags):
     
     # Initialize actor models
     # models = {}
+    device = 'cpu'
     # for device in device_iterator:
     #     model = Model(device=device)
     #     model.share_memory()
     #     model.eval()
     #     models[device] = model
-    model = Model(device=device)
+    model = Model(device='cpu')
 
     # Initialize buffers
-    buffers = create_buffers(flags, device_iterator)
+    buffers = create_buffers(flags, [device])
    
     # Initialize queues
     actor_processes = []
@@ -104,11 +105,11 @@ def train(flags):
     free_queue = {}
     full_queue = {}
         
-    for device in device_iterator:
-        _free_queue = {'landlord': mp.SimpleQueue(), 'landlord_up': mp.SimpleQueue(), 'landlord_down': mp.SimpleQueue()}
-        _full_queue = {'landlord': mp.SimpleQueue(), 'landlord_up': mp.SimpleQueue(), 'landlord_down': mp.SimpleQueue()}
-        free_queue[device] = _free_queue
-        full_queue[device] = _full_queue
+    
+    _free_queue = {'landlord': mp.SimpleQueue(), 'landlord_up': mp.SimpleQueue(), 'landlord_down': mp.SimpleQueue()}
+    _full_queue = {'landlord': mp.SimpleQueue(), 'landlord_up': mp.SimpleQueue(), 'landlord_down': mp.SimpleQueue()}
+    free_queue[device] = _free_queue
+    full_queue[device] = _full_queue
 
     # Learner model for training
     # learner_model = Model(device=flags.training_device)
@@ -132,11 +133,11 @@ def train(flags):
     
 
 
-    for device in device_iterator:
-        for m in range(flags.num_buffers):
-            free_queue[device]['landlord'].put(m)
-            free_queue[device]['landlord_up'].put(m)
-            free_queue[device]['landlord_down'].put(m)
+
+    for m in range(flags.num_buffers):
+        free_queue[device]['landlord'].put(m)
+        free_queue[device]['landlord_up'].put(m)
+        free_queue[device]['landlord_down'].put(m)
 
     
     def checkpoint(frames):
@@ -159,18 +160,18 @@ def train(flags):
     try:
         last_checkpoint_time = timer() - flags.save_interval * 60
         while frames < flags.total_frames:
-            _, _, free_queue[0], full_queue[0], model, buffers[0], flags = act1(0, 0, free_queue[0], full_queue[0], models, buffers[0], flags)
+            _, _, free_queue[device], full_queue[device], model, buffers[device], flags = act1(0, device, free_queue[device], full_queue[device], models, buffers[device], flags)
 
             for position in ['landlord', 'landlord_up', 'landlord_down']:
-                if(len(full_queue[0][position]) < flags.batch_size):
+                if(len(full_queue[device][position]) < flags.batch_size):
                     continue
-                indices = [full_queue[0][position].get() for _ in range(flags.batch_size)]
+                indices = [full_queue[device][position].get() for _ in range(flags.batch_size)]
                 batch = {
                     key: tf.stack([buffers[key][m] for m in indices], axis=1)
                     for key in buffers
                 }
                 for m in indices:
-                    free_queue[0][position].put(m)
+                    free_queue[device][position].put(m)
                 _stats = learn(position, model.get_model(position), batch, 
                     optimizers[position], flags)
 
