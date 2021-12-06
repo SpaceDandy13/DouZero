@@ -261,7 +261,7 @@ def act1(i, device, free_queue, full_queue, model, buffers, flags):
                     obs_z_buf[p] = obs_z_buf[p][T:]
                     size[p] -= T
 
-                    ['landlord', 'landlord_up', 'landlord_down']
+            print(full_queue['landlord'].qsize(), full_queue['landlord_up'].qsize(), full_queue['landlord_down'].qsize())
             if full_queue['landlord'].qsize() < flags.batch_size and full_queue['landlord_up'].qsize() < flags.batch_size and full_queue['landlord_down'].qsize() < flags.batch_size:
                 break
 
