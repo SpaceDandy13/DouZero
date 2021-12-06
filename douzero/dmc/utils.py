@@ -202,7 +202,7 @@ def act1(i, device, free_queue, full_queue, model, buffers, flags):
     positions = ['landlord', 'landlord_up', 'landlord_down']
     try:
         T = flags.unroll_length
-        log.info('Device %s Actor %i started.', str(device), i)
+        # log.info('Device %s Actor %i started.', str(device), i)
 
         env = create_env(flags)
         env = Environment(env, device)
