@@ -40,7 +40,7 @@ def learn(position,
     shape_obs_z[1] = shape_obs_z[0]*shape_obs_z[1]
     shape_obs_z.pop(0)
     obs_z = tf.reshape(obs_z, shape_obs_z)
-    
+
     shape_target = batch['target'].get_shape().as_list()
     shape_target[1] = shape_target[0]*shape_target[1]
     shape_target.pop(0)
@@ -51,13 +51,13 @@ def learn(position,
         
 
     with tf.GradientTape() as tape:
-        learner_outputs = model(obs_z, obs_x, return_value=True)
+        learner_outputs = model(obs_z, obs_x, True)
         loss = compute_loss(learner_outputs['values'], target)
     stats = {
         'mean_episode_return_'+position: tf.reduce_mean(tf.stack([_r for _r in mean_episode_return_buf[position]])).item(),
         'loss_'+position: loss.item(),
     }
-        
+        # todo optimizer.zero_grad()
     gradients = tape.gradient(loss, model.trainable_variables)
     gradients = [tf.clip_by_norm(g, flags.max_grad_norm) for g in gradients]
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
