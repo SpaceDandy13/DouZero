@@ -216,50 +216,54 @@ def act1(i, device, free_queue, full_queue, model, buffers, flags):
         size = {p: 0 for p in positions}
 
         position, obs, env_output = env.initial()
-
         while True:
-            obs_x_no_action_buf[position].append(env_output['obs_x_no_action'])
-            obs_z_buf[position].append(env_output['obs_z'])
-            # with tf.stop_gradient():    #todo
-            agent_output = model.forward(position, obs['z_batch'], obs['x_batch'], flags=flags)
-            _action_idx = int(agent_output['action'].numpy())
-            action = obs['legal_actions'][_action_idx]
-            obs_action_buf[position].append(_cards2tensor(action))
-            size[position] += 1
-            position, obs, env_output = env.step(action)
-            if env_output['done']:
-                for p in positions:
-                    diff = size[p] - len(target_buf[p])
-                    if diff > 0:
-                        done_buf[p].extend([False for _ in range(diff-1)])
-                        done_buf[p].append(True)
+            while True:
+                obs_x_no_action_buf[position].append(env_output['obs_x_no_action'])
+                obs_z_buf[position].append(env_output['obs_z'])
+                # with tf.stop_gradient():    #todo
+                agent_output = model.forward(position, obs['z_batch'], obs['x_batch'], flags=flags)
+                _action_idx = int(agent_output['action'].numpy())
+                action = obs['legal_actions'][_action_idx]
+                obs_action_buf[position].append(_cards2tensor(action))
+                size[position] += 1
+                position, obs, env_output = env.step(action)
+                if env_output['done']:
+                    for p in positions:
+                        diff = size[p] - len(target_buf[p])
+                        if diff > 0:
+                            done_buf[p].extend([False for _ in range(diff-1)])
+                            done_buf[p].append(True)
 
-                        episode_return = env_output['episode_return'] if p == 'landlord' else -env_output['episode_return']
-                        episode_return_buf[p].extend([0.0 for _ in range(diff-1)])
-                        episode_return_buf[p].append(episode_return)
-                        target_buf[p].extend([episode_return for _ in range(diff)])
-                break
-
-        for p in positions:
-            while size[p] > T: 
-                index = free_queue[p].get()
-                if index is None:
+                            episode_return = env_output['episode_return'] if p == 'landlord' else -env_output['episode_return']
+                            episode_return_buf[p].extend([0.0 for _ in range(diff-1)])
+                            episode_return_buf[p].append(episode_return)
+                            target_buf[p].extend([episode_return for _ in range(diff)])
                     break
-                for t in range(T):
-                    buffers[p]['done'][index][t, ...] = done_buf[p][t]
-                    buffers[p]['episode_return'][index][t, ...] = episode_return_buf[p][t]
-                    buffers[p]['target'][index][t, ...] = target_buf[p][t]
-                    buffers[p]['obs_x_no_action'][index][t, ...] = obs_x_no_action_buf[p][t]
-                    buffers[p]['obs_action'][index][t, ...] = obs_action_buf[p][t]
-                    buffers[p]['obs_z'][index][t, ...] = obs_z_buf[p][t]
-                full_queue[p].put(index)
-                done_buf[p] = done_buf[p][T:]
-                episode_return_buf[p] = episode_return_buf[p][T:]
-                target_buf[p] = target_buf[p][T:]
-                obs_x_no_action_buf[p] = obs_x_no_action_buf[p][T:]
-                obs_action_buf[p] = obs_action_buf[p][T:]
-                obs_z_buf[p] = obs_z_buf[p][T:]
-                size[p] -= T
+
+            for p in positions:
+                while size[p] > T: 
+                    index = free_queue[p].get()
+                    if index is None:
+                        break
+                    for t in range(T):
+                        buffers[p]['done'][index][t, ...] = done_buf[p][t]
+                        buffers[p]['episode_return'][index][t, ...] = episode_return_buf[p][t]
+                        buffers[p]['target'][index][t, ...] = target_buf[p][t]
+                        buffers[p]['obs_x_no_action'][index][t, ...] = obs_x_no_action_buf[p][t]
+                        buffers[p]['obs_action'][index][t, ...] = obs_action_buf[p][t]
+                        buffers[p]['obs_z'][index][t, ...] = obs_z_buf[p][t]
+                    full_queue[p].put(index)
+                    done_buf[p] = done_buf[p][T:]
+                    episode_return_buf[p] = episode_return_buf[p][T:]
+                    target_buf[p] = target_buf[p][T:]
+                    obs_x_no_action_buf[p] = obs_x_no_action_buf[p][T:]
+                    obs_action_buf[p] = obs_action_buf[p][T:]
+                    obs_z_buf[p] = obs_z_buf[p][T:]
+                    size[p] -= T
+
+                    ['landlord', 'landlord_up', 'landlord_down']
+            if full_queue['landlord'].qsize() < flags.batch_size and full_queue['landlord_up'].qsize() < flags.batch_size and full_queue['landlord_down'].qsize() < flags.batch_size:
+                break
 
     except KeyboardInterrupt:
         pass  
@@ -268,4 +272,4 @@ def act1(i, device, free_queue, full_queue, model, buffers, flags):
         traceback.print_exc()
         print()
         raise e
-    return i, device, free_queue, full_queue, model, buffers, flags
+    return free_queue, full_queue, buffers

@@ -37,7 +37,7 @@ parser.add_argument('--batch_size', default=32, type=int,
                     help='Learner batch size')
 parser.add_argument('--unroll_length', default=100, type=int,
                     help='The unroll length (time dimension)')
-parser.add_argument('--num_buffers', default=50, type=int,
+parser.add_argument('--num_buffers', default=500, type=int,
                     help='Number of shared-memory buffers')
 parser.add_argument('--num_threads', default=4, type=int,
                     help='Number learner threads')
