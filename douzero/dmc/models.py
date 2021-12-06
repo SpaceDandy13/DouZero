@@ -100,7 +100,7 @@ class Model:
 
     def call(self, position, z, x, training=False, flags=None):
         model = self.models[position]
-        return model.forward(z, x, training, flags)
+        return model.call(z, x, training, flags)
 
     def share_memory(self):
         self.models['landlord']#.share_memory()
