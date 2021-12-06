@@ -20,7 +20,8 @@ class LandlordLstmModel(tf.keras.Model):
         self.dense5 = Dense(512)
         self.dense6 = Dense(1)
 
-    def forward(self, z, x, return_value=False, flags=None):
+    @tf.function
+    def call(self, z, x, return_value=False, flags=None):
         lstm_out, h_n, _ = self.lstm(z)
         lstm_out = lstm_out[:,-1,:]
         x = tf.concat([lstm_out,x], axis=-1)
@@ -55,7 +56,8 @@ class FarmerLstmModel(tf.keras.Model):
         self.dense5 = Dense(512)
         self.dense6 = Dense(1)
 
-    def forward(self, z, x, return_value=False, flags=None):
+    @tf.function
+    def call(self, z, x, return_value=False, flags=None):
         lstm_out, h_n, _ = self.lstm(z)
         lstm_out = lstm_out[:,-1,:]
         x = tf.concat([lstm_out,x], axis=-1)
@@ -98,7 +100,8 @@ class Model:
         self.models['landlord_up'] = FarmerLstmModel()
         self.models['landlord_down'] = FarmerLstmModel()
 
-    def forward(self, position, z, x, training=False, flags=None):
+    @tf.function
+    def call(self, position, z, x, training=False, flags=None):
         model = self.models[position]
         return model.forward(z, x, training, flags)
 
