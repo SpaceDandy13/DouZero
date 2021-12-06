@@ -29,7 +29,7 @@ def learn(position,
     
     obs_x_no_action = batch['obs_x_no_action']
     obs_action = batch['obs_action']
-    obs_x = tf.concat((obs_x_no_action, obs_action), aixs=2).float()
+    obs_x = tf.concat((obs_x_no_action, obs_action), axis=2).float()
 
     shape_obs_x = obs_x.get_shape().as_list()
     shape_obs_x[1] = shape_obs_x[0]*shape_obs_x[1]
@@ -168,7 +168,7 @@ def train(flags):
                 train_num += 1
                 indices = [full_queue[device][position].get() for _ in range(flags.batch_size)]
                 batch = {
-                    key: tf.stack([buffers[device][position][key][m] for m in indices], axis=1)
+                    key: 】([buffers[device][position][key][m] for m in indices], axis=1)
                     for key in buffers[device][position]
                 }
                 for m in indices:
