@@ -244,10 +244,7 @@ def act1(i, device, free_queue, full_queue, model, buffers, flags):
                     break
 
             for p in positions:
-                print("3",size)
                 while size[p] > T: 
-                    print("4",size)
-
                     index = free_queue[p].get()
                     if index is None:
                         break
@@ -266,12 +263,12 @@ def act1(i, device, free_queue, full_queue, model, buffers, flags):
                     obs_action_buf[p] = obs_action_buf[p][T:]
                     obs_z_buf[p] = obs_z_buf[p][T:]
                     size[p] -= T
-                    print("5",size)
+            print("3",size)
 
 
-            # print(full_queue['landlord'].qsize(), full_queue['landlord_up'].qsize(), full_queue['landlord_down'].qsize())
-            if full_queue['landlord'].qsize() < flags.batch_size and full_queue['landlord_up'].qsize() < flags.batch_size and full_queue['landlord_down'].qsize() < flags.batch_size:
-                break
+            # # print(full_queue['landlord'].qsize(), full_queue['landlord_up'].qsize(), full_queue['landlord_down'].qsize())
+            # if full_queue['landlord'].qsize() < flags.batch_size and full_queue['landlord_up'].qsize() < flags.batch_size and full_queue['landlord_down'].qsize() < flags.batch_size:
+            #     break
 
     except KeyboardInterrupt:
         pass  
