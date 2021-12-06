@@ -168,7 +168,7 @@ def train(flags):
                 train_num += 1
                 indices = [full_queue[device][position].get() for _ in range(flags.batch_size)]
                 batch = {
-                    key: 】([buffers[device][position][key][m] for m in indices], axis=1)
+                    key: tf.stack([buffers[device][position][key][m] for m in indices], axis=1)
                     for key in buffers[device][position]
                 }
                 for m in indices:
