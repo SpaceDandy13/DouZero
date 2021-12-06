@@ -217,7 +217,6 @@ def act1(i, device, free_queue, full_queue, model, buffers, flags):
 
         position, obs, env_output = env.initial()
         while True:
-            print("1",size)
             while True:
                 obs_x_no_action_buf[position].append(env_output['obs_x_no_action'])
                 obs_z_buf[position].append(env_output['obs_z'])
@@ -228,7 +227,6 @@ def act1(i, device, free_queue, full_queue, model, buffers, flags):
                 obs_action_buf[position].append(_cards2tensor(action))
                 size[position] += 1
                 position, obs, env_output = env.step(action)
-                print("2",size)
 
                 if env_output['done']:
                     for p in positions:
@@ -263,12 +261,10 @@ def act1(i, device, free_queue, full_queue, model, buffers, flags):
                     obs_action_buf[p] = obs_action_buf[p][T:]
                     obs_z_buf[p] = obs_z_buf[p][T:]
                     size[p] -= T
-            print("3",size)
 
-
-            # # print(full_queue['landlord'].qsize(), full_queue['landlord_up'].qsize(), full_queue['landlord_down'].qsize())
-            # if full_queue['landlord'].qsize() < flags.batch_size and full_queue['landlord_up'].qsize() < flags.batch_size and full_queue['landlord_down'].qsize() < flags.batch_size:
-            #     break
+            print(full_queue)
+            if full_queue['landlord'].qsize() >= flags.batch_size and full_queue['landlord_up'].qsize() >= flags.batch_size and full_queue['landlord_down'].qsize() >= flags.batch_size:
+                break
 
     except KeyboardInterrupt:
         pass  
