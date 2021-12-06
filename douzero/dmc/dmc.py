@@ -167,10 +167,9 @@ def train(flags):
             for position in ['landlord', 'landlord_up', 'landlord_down']:
                 train_num += 1
                 indices = [full_queue[device][position].get() for _ in range(flags.batch_size)]
-                print(buffers.keys())
                 batch = {
                     key: tf.stack([buffers[device][position][key][m] for m in indices], axis=1)
-                    for key in buffers
+                    for key in buffers[device][position]
                 }
                 for m in indices:
                     free_queue[device][position].put(m)
