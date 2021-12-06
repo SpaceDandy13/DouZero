@@ -55,8 +55,8 @@ def learn(position,
         learner_outputs = model(obs_z, obs_x, True)
         loss = compute_loss(learner_outputs['values'], target)
     stats = {
-        'mean_episode_return_'+position: tf.reduce_mean(tf.stack([_r for _r in mean_episode_return_buf[position]])).item(),
-        'loss_'+position: loss.item(),
+        'mean_episode_return_'+position: tf.reduce_mean(tf.stack([_r for _r in mean_episode_return_buf[position]])),
+        'loss_'+position: loss,
     }
         # todo optimizer.zero_grad()
     gradients = tape.gradient(loss, model.trainable_variables)
