@@ -162,9 +162,11 @@ def train(flags):
         while frames < flags.total_frames:
             _, _, free_queue[device], full_queue[device], model, buffers[device], flags = act1(0, device, free_queue[device], full_queue[device], model, buffers[device], flags)
 
+            train_num = 0
             for position in ['landlord', 'landlord_up', 'landlord_down']:
                 if(full_queue[device][position].qsize() < flags.batch_size):
                     continue
+                train_num += 1
                 indices = [full_queue[device][position].get() for _ in range(flags.batch_size)]
                 batch = {
                     key: tf.stack([buffers[key][m] for m in indices], axis=1)
@@ -183,6 +185,8 @@ def train(flags):
                 frames += T * B
                 position_frames[position] += T * B
 
+            if train_num == 0:
+                continue
             start_frames = frames
             position_start_frames = {k: position_frames[k] for k in position_frames}
             start_time = timer()
