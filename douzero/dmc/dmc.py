@@ -30,16 +30,17 @@ def learn(position,
     obs_x_no_action = batch['obs_x_no_action']
     obs_action = batch['obs_action']
     obs_x = tf.cast(tf.concat((obs_x_no_action, obs_action), axis=2),dtype=tf.float32)
-
     shape_obs_x = obs_x.get_shape().as_list()
     shape_obs_x[1] = shape_obs_x[0]*shape_obs_x[1]
     shape_obs_x.pop(0)
     obs_x = tf.reshape(obs_x, shape_obs_x)
+
+    obs_z = tf.cast(batch['obs_z'],dtype=tf.float32)
     shape_obs_z = obs_z.get_shape().as_list()
     shape_obs_z[1] = shape_obs_z[0]*shape_obs_z[1]
     shape_obs_z.pop(0)
     obs_z = tf.reshape(obs_z, shape_obs_z)
-    tf.cast(obs_z, tf.float32)
+    
     shape_target = batch['target'].get_shape().as_list()
     shape_target[1] = shape_target[0]*shape_target[1]
     shape_target.pop(0)
