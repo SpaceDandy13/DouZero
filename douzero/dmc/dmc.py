@@ -17,10 +17,6 @@ from .utils import get_batch, log, create_env, create_buffers, create_optimizers
 mean_episode_return_buf = {p:deque(maxlen=100) for p in ['landlord', 'landlord_up', 'landlord_down']}
 
 def compute_loss(logits, targets):
-    print(targets)
-    print(logits)
-    print(tf.experimental.numpy.squeeze(logits, axis=-1))
-    
     loss = tf.math.reduce_mean((tf.experimental.numpy.squeeze(logits, axis=-1) - targets)**2)
     return loss
 
@@ -49,6 +45,7 @@ def learn(position,
     shape_target[1] = shape_target[0]*shape_target[1]
     shape_target.pop(0)
     target = tf.reshape(batch['target'], shape_target)
+    target = tf.cast(target,dtype=tf.float32)
 
     episode_returns = batch['episode_return'][batch['done']]
     mean_episode_return_buf[position].append(tf.reduce_mean(episode_returns))
