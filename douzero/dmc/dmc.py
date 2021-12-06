@@ -162,7 +162,6 @@ def train(flags):
     try:
         last_checkpoint_time = timer() - flags.save_interval * 60
         while frames < flags.total_frames:
-            print(buffers.keys())
             free_queue[device], full_queue[device],buffers[device] = act1(0, device, free_queue[device], full_queue[device], model, buffers[device], flags)
 
             train_num = 0
