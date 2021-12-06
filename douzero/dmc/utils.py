@@ -221,7 +221,7 @@ def act1(i, device, free_queue, full_queue, model, buffers, flags):
                 obs_x_no_action_buf[position].append(env_output['obs_x_no_action'])
                 obs_z_buf[position].append(env_output['obs_z'])
                 # with tf.stop_gradient():    #todo
-                agent_output = model.forward(position, obs['z_batch'], obs['x_batch'], flags=flags)
+                agent_output = model.call(position, obs['z_batch'], obs['x_batch'], flags=flags)
                 _action_idx = int(agent_output['action'].numpy())
                 action = obs['legal_actions'][_action_idx]
                 obs_action_buf[position].append(_cards2tensor(action))
