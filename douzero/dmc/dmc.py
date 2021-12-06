@@ -160,14 +160,14 @@ def train(flags):
     try:
         last_checkpoint_time = timer() - flags.save_interval * 60
         while frames < flags.total_frames:
-            print(buffers)
+            print(buffers.keys())
             free_queue[device], full_queue[device],buffers[device] = act1(0, device, free_queue[device], full_queue[device], model, buffers[device], flags)
 
             train_num = 0
             for position in ['landlord', 'landlord_up', 'landlord_down']:
                 train_num += 1
                 indices = [full_queue[device][position].get() for _ in range(flags.batch_size)]
-                print(buffers)
+                print(buffers.keys())
                 batch = {
                     key: tf.stack([buffers[device][position][key][m] for m in indices], axis=1)
                     for key in buffers
