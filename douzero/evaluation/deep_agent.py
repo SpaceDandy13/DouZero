@@ -7,6 +7,8 @@ def _load_model(position, model_path):
     from douzero.dmc.models import Model
     model = Model(device='cpu')
     model_pos = model.get_model(position)
+    # model_pos.call()
+    # model_pos.load_weights(model_path)
 
     return model_pos
 
@@ -14,7 +16,6 @@ class DeepAgent:
 
     def __init__(self, position, model_path):
         self.model = _load_model(position, model_path)
-        self.model_path = model_path
 
     def act(self, infoset):
         if len(infoset.legal_actions) == 1:
@@ -24,10 +25,7 @@ class DeepAgent:
 
         z_batch = tf.cast(obs['z_batch'], dtype=tf.float32)
         x_batch = tf.cast(obs['x_batch'], dtype=tf.float32)
-
-        self.model.call(z_batch, x_batch, return_value=True)
-        self.model.load_weights(model_path)
-
+        print(z_batch, x_batch)
         y_pred = self.model.call(z_batch, x_batch, return_value=True)['values']
         y_pred = y_pred.numpy()
 
