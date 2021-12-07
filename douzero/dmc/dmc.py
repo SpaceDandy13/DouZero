@@ -151,7 +151,7 @@ def train(flags):
         # Save the weights for evaluation purpose
         for position in ['landlord', 'landlord_up', 'landlord_down']:
             model_weights_dir = os.path.expandvars(os.path.expanduser(
-                '%s/%s/%s' % (flags.savedir, flags.xpid, position+'_weights_'+str(frames)+'.ckpt')))
+                '%s/%s/%s' % (flags.savedir, flags.xpid, position+'_weights_'+str(frames))))
             model.get_model(position).save_weights(model_weights_dir)
 
 

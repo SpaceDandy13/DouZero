@@ -15,7 +15,12 @@ def load_card_play_models(card_play_model_path_dict):
             players[position] = RandomAgent()
         else:
             from .deep_agent import DeepAgent
-            players[position] = DeepAgent(position, card_play_model_path_dict[position])
+            from .deep_agent_torch import DeepAgentTorch
+            if card_play_model_path_dict[position][-4:] == 'ckpt':
+                players[position] = DeepAgentTorch(position, card_play_model_path_dict[position])
+            else:
+                players[position] = DeepAgent(position, card_play_model_path_dict[position])
+                
     return players
 
 def mp_simulate(card_play_data_list, card_play_model_path_dict, q):
