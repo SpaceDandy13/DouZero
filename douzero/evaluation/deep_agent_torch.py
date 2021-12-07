@@ -4,7 +4,7 @@ import numpy as np
 from douzero.env.env import get_obs
 
 def _load_model(position, model_path):
-    from models import model_dict
+    from .models import model_dict
     model = model_dict[position]()
     model_state_dict = model.state_dict()
     if torch.cuda.is_available():
