@@ -4,21 +4,12 @@ import numpy as np
 from douzero.env.env import get_obs
 
 def _load_model(position, model_path):
-    from douzero.dmc.models import model_dict
-    model = create_model()
-    model.load_weights(model_path)
-    # model_state_dict = model.state_dict()
-    # if torch.cuda.is_available():
-    #     pretrained = torch.load(model_path, map_location='cuda:0')
-    # else:
-    #     pretrained = torch.load(model_path, map_location='cpu')
-    # pretrained = {k: v for k, v in pretrained.items() if k in model_state_dict}
-    # model_state_dict.update(pretrained)
-    # model.load_state_dict(model_state_dict)
-    # if torch.cuda.is_available():
-    #     model.cuda()
-    # model.eval()
-    return model
+    from douzero.dmc.models import Model
+    model = Model(device='cpu')
+    model_pos = model.get_model(position)
+    model_pos.load_weights(model_path)
+
+    return model_pos
 
 class DeepAgent:
 
@@ -31,12 +22,11 @@ class DeepAgent:
 
         obs = get_obs(infoset) 
 
-        z_batch = torch.from_numpy(obs['z_batch']).float()
-        x_batch = torch.from_numpy(obs['x_batch']).float()
-        if torch.cuda.is_available():
-            z_batch, x_batch = z_batch.cuda(), x_batch.cuda()
-        y_pred = self.model.forward(z_batch, x_batch, return_value=True)['values']
-        y_pred = y_pred.detach().cpu().numpy()
+        z_batch = tf.cast(obs['z_batch'], dtype=tf.float32)
+        x_batch = tf.cast(obs['x_batch'], dtype=tf.float32)
+
+        y_pred = self.model.call(z_batch, x_batch, return_value=True)['values']
+        y_pred = y_pred.numpy()
 
         best_action_index = np.argmax(y_pred, axis=0)[0]
         best_action = infoset.legal_actions[best_action_index]
