@@ -1,22 +1,23 @@
-import torch
+import tensorflow as tf
 import numpy as np
 
 from douzero.env.env import get_obs
 
 def _load_model(position, model_path):
     from douzero.dmc.models import model_dict
-    model = model_dict[position]()
-    model_state_dict = model.state_dict()
-    if torch.cuda.is_available():
-        pretrained = torch.load(model_path, map_location='cuda:0')
-    else:
-        pretrained = torch.load(model_path, map_location='cpu')
-    pretrained = {k: v for k, v in pretrained.items() if k in model_state_dict}
-    model_state_dict.update(pretrained)
-    model.load_state_dict(model_state_dict)
-    if torch.cuda.is_available():
-        model.cuda()
-    model.eval()
+    model = create_model()
+    model.load_weights(model_path)
+    # model_state_dict = model.state_dict()
+    # if torch.cuda.is_available():
+    #     pretrained = torch.load(model_path, map_location='cuda:0')
+    # else:
+    #     pretrained = torch.load(model_path, map_location='cpu')
+    # pretrained = {k: v for k, v in pretrained.items() if k in model_state_dict}
+    # model_state_dict.update(pretrained)
+    # model.load_state_dict(model_state_dict)
+    # if torch.cuda.is_available():
+    #     model.cuda()
+    # model.eval()
     return model
 
 class DeepAgent:
