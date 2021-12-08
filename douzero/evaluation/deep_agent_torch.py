@@ -32,8 +32,8 @@ class DeepAgentTorch:
 
         z_batch = torch.from_numpy(obs['z_batch']).float()
         x_batch = torch.from_numpy(obs['x_batch']).float()
-        print("z_batch",z_batch)
-        print("x_batch",x_batch)
+        print("z_batch",z_batch.size)
+        print("x_batch",x_batch.size)
 
         if torch.cuda.is_available():
             z_batch, x_batch = z_batch.cuda(), x_batch.cuda()

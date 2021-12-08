@@ -7,6 +7,7 @@ def _load_model(position, model_path):
     from douzero.dmc.models import Model
     model = Model(device='cpu')
     model_pos = model.get_model(position)
+    
     model_pos.call(np.zeros([1,5,162]),np.zeros([1,373]))
     model_pos.load_weights(model_path)
 
