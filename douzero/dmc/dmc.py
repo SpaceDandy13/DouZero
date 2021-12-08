@@ -97,6 +97,10 @@ def train(flags):
     #     model.eval()
     #     models[device] = model
     model = Model(device='cpu')
+    for position in ['landlord']:
+        model_pos = model.get_model(position)
+        model_pos.call(np.zeros([1,5,162]),np.zeros([1,373]))
+        model_pos.load_weights("most_recent_model/landlord_weights_964800.ckpt")
 
     # Initialize buffers
     buffers = create_buffers(flags, [device])
