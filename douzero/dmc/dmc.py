@@ -99,7 +99,10 @@ def train(flags):
     model = Model(device='cpu')
     for position in ['landlord', 'landlord_up', 'landlord_down']:
         model_pos = model.get_model(position)
-        model_pos.call(np.zeros([1,5,162]),np.zeros([1,373]))
+        if position == 'landlord':
+            model_pos.call(np.zeros([1,5,162]),np.zeros([1,373]))
+        else:
+            model_pos.call(np.zeros([1,5,162]),np.zeros([1,373]))
         model_pos.load_weights("tmp/"+position+"_weights_1005600")
 
     # Initialize buffers
