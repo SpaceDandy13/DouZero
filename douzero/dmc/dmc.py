@@ -103,7 +103,7 @@ def train(flags):
             model_pos.call(np.zeros([1,5,162]),np.zeros([1,373]))
         else:
             model_pos.call(np.zeros([1,5,162]),np.zeros([1,484]))
-        model_pos.load_weights("tmp/"+position+"_weights_1005600")
+        model_pos.load_weights("tmp1/"+position+"_weights_1029600")
 
     # Initialize buffers
     buffers = create_buffers(flags, [device])
